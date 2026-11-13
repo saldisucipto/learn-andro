@@ -22,8 +22,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -45,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -96,7 +99,7 @@ fun ScannerScreen(modifier: Modifier = Modifier) {
             .background(TerminalBg)
             .volumeDownTrigger {
                 scanningEnabled = true
-                ScanBeep.play()
+                ScanBeep.confirm(context)
             }
     ) {
         // Headless capture engine: no preview surface, camera runs silently.
@@ -109,7 +112,7 @@ fun ScannerScreen(modifier: Modifier = Modifier) {
                         val record = ScanRecord(value = result.value, format = result.format)
                         history.add(0, record)
                         lastSeen = record
-                        ScanBeep.play()
+                        ScanBeep.success(context, result.value.length)
                     }
                 }
             )
@@ -122,6 +125,8 @@ fun ScannerScreen(modifier: Modifier = Modifier) {
             )
 
             ImeBanner()
+
+            KeyboardTestField()
 
             if (!hasPermission) {
                 PermissionRationale(
@@ -202,8 +207,63 @@ private fun StatusBar(scanningEnabled: Boolean, hasPermission: Boolean) {
 }
 
 @Composable
-private fun ImeBanner() {
-    val context = LocalContext.current
+private fun KeyboardTestField() {
+    var text by remember { mutableStateOf("") }
+    var numeric by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PanelBg)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                color = Color.White,
+                fontSize = 14.sp,
+                fontFamily = FontFamily.Monospace
+            ),
+            label = {
+                Text(
+                    text = if (numeric) "TEST KEYPAD (NUM)" else "TEST KEYBOARD (ABC)",
+                    color = MutedText,
+                    fontSize = 10.sp
+                )
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text
+            ),
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AccentGreen,
+                unfocusedBorderColor = DividerColor,
+                cursorColor = AccentGreen
+            )
+        )
+
+        OutlinedButton(
+            onClick = { numeric = !numeric },
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            modifier = Modifier.size(width = 72.dp, height = 40.dp)
+        ) {
+            Text(
+                text = if (numeric) "ABC" else "123",
+                color = AccentGreen,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImeBanner() {    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var enabled by remember { mutableStateOf(ImeHelper.isEnabled(context)) }
